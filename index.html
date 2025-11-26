@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>splent - Job Matcher (Využitie Potenciálu AI)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        /* --- CSS pre Fialovo-modrý Vzhľad --- */
+        
+        body {
+            font-family: 'Montserrat', sans-serif; /* Používame stiahnuté písmo */
+            background-color: #EDE7F6; /* Veľmi svetlá fialovo-modrá */
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px; /* Zaoblenejšie rohy */
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        h1 {
+            color: #673AB7; /* Primárna fialová */
+            text-align: center;
+            margin-bottom: 5px;
+            font-weight: 800; /* Extra hrubý font */
+        }
+        
+        h3 {
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 5px;
+            margin-top: 30px;
+            color: #3F51B5; /* Sekundárna modrá */
+            font-weight: 600;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"], input[type="number"], textarea, select {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid #B39DDB;
+            border-radius: 8px;
+            box-sizing: border-box;
+            resize: vertical;
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        /* Tlačidlo - Fialová/Modrá akcent */
+        button {
+            background-color: #3F51B5;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #673AB7; /* Prepnutie na fialovú pri hoveri */
+        }
+        
+        /* Resetovacie tlačidlo */
+        #resetBtn {
+            background-color: #90A4AE; /* Sivá */
+            margin-top: 5px;
+        }
+        
+        #resetBtn:hover {
+            background-color: #78909C;
+        }
+
+        .profil-box {
+            margin-top: 25px;
+            padding: 15px;
+            border: 2px solid #673AB7;
+            border-radius: 8px;
+            background-color: #F3E5F5;
+            min-height: 50px;
+        }
+
+        .job-offer {
+            border: 1px solid #C5CAE9;
+            padding: 15px;
+            margin-top: 10px;
+            border-left: 6px solid #3F51B5;
+            border-radius: 8px;
+            background-color: #E8EAF6;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .job-offer:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .job-offer h4 {
+            color: #303F9F;
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 1.1em;
+        }
+
+        .no-match {
+            border-left: 5px solid #E57373;
+            background-color: #FFEBEE;
+        }
+    </style>
+</head>
+
+<body onload="nacitajProfil()"> 
+
+<div class="container">
+    <h1>
+        <span style="color: #673AB7;">⭐</span> splent <span style="font-size: 0.7em; color: #3F51B5;">Job Matcher</span>
+    </h1>
+    <p style="text-align: center; margin-top: -15px; color: #777;">Váš profil sa automaticky ukladá vo Vašom prehliadači.</p>
+
+    <label for="meno">Meno:</label>
+    <input type="text" id="meno" placeholder="Zadaj svoje meno" required>
+
+    <label for="zrucnosti">Kľúčové zručnosti (oddelené čiarkou, napr. AI, Video, Kódovanie):</label>
+    <textarea id="zrucnosti" rows="2" placeholder="Napr. Kódovanie, Projektový manažment, Predaj"></textarea>
+
+    <label for="potencial">Celkový Potenciál (1-10):</label>
+    <input type="number" id="potencial" min="1" max="10" value="5" required>
+
+    <label for="urovenFiltra">Filtrovať podľa požadovanej úrovne:</label>
+    <select id="urovenFiltra">
+        <option value="0">Všetky pozície</option>
+        <option value="4">Juniorské (Potenciál 1-4)</option>
+        <option value="7">Špecializované/Stredné (Potenciál 5-7)</option>
+        <option value="10">Seniorské/Vedúce (Potenciál 8-10)</option>
+    </select>
+
+    <button onclick="generujMatch()">Nájsť Pracovné Príležitosti</button>
+    
+    <button id="resetBtn" onclick="vymazProfil()">Vymazať Uložený Profil</button>
+
+    <div id="vystup">
+        <div class="profil-box">
+            **Tvoj profil sa zobrazí tu.**
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- JavaScript Logika ---
+
+    // 1. Preddefinované Dáta o Prácach (vrátane AI, Video, Dizajn...)
+    const jobData = [
+        { zrucnost: "kódovanie", potencialMin: 7, nazov: "Senior Software Developer", popis: "Tvorba komplexných webových aplikácií.", vyzaduje: "Vysoký potenciál v logike a riešení problémov." },
+        { zrucnost: "kódovanie", potencialMin: 3, nazov: "Junior Web Tester", popis: "Kontrola chýb a dokumentácia v nových projektoch.", vyzaduje: "Ochotu učiť sa a základné technické pochopenie." },
+        { zrucnost: "projektový manažment", potencialMin: 8, nazov: "Hlavný PMO Manažér", popis: "Vedenie strategických projektov a tímov.", vyzaduje: "Výborné komunikačné schopnosti a riadenie rizík." },
+        { zrucnost: "projektový manažment", potencialMin: 5, nazov: "Koordinátor Projektov", popis: "Podpora PM tímu pri administratíve a plánovaní.", vyzaduje: "Organizovanosť a stredný potenciál v detailoch." },
+        { zrucnost: "predaj", potencialMin: 7, nazov: "Obchodný Strategický Partner", popis: "Budovanie kľúčových obchodných vzťahov.", vyzaduje: "Charizma a vysoký potenciál v presviedčaní." },
+        { zrucnost: "predaj", potencialMin: 4, nazov: "Tele-predajca", popis: "Prvotný kontakt so zákazníkmi a kvalifikácia leadov.", vyzaduje: "Trpezlivosť a stredný potenciál v komunikácii." },
+        { zrucnost: "marketing", potencialMin: 6, nazov: "Digitálny Marketingový Špecialista", popis: "Tvorba a správa online kampaní.", vyzaduje: "Kreativita, analytické myslenie a potenciál nad 6." },
+        { zrucnost: "administratíva", potencialMin: 2, nazov: "Administratívny Asistent", popis: "Správa dokumentácie a základná podpora tímu.", vyzaduje: "Systematickosť a pozornosť k detailom." },
+        { zrucnost: "financie", potencialMin: 9, nazov: "Finančný Analytik", popis: "Tvorba rozpočtov, finančných modelov a strategické plánovanie.", vyzaduje: "Vysoký analytický potenciál a kritické myslenie." },
+        { zrucnost: "video", potencialMin: 7, nazov: "Video Produkčný Špecialista", popis: "Natáčanie, strih a postprodukcia marketingových videí.", vyzaduje: "Kreativita, technické znalosti a potenciál pre rozprávanie príbehov." },
+        { zrucnost: "dizajn", potencialMin: 8, nazov: "Senior UX/UI Dizajnér", popis: "Návrh používateľského rozhrania, testovanie a optimalizácia.", vyzaduje: "Vysoký potenciál pre empatiu a vizuálne myslenie." },
+        { zrucnost: "prezentácia", potencialMin: 7, nazov: "Interný Tréner/Školiteľ", popis: "Vedenie workshopov a školení pre rozvoj zamestnancov.", vyzaduje: "Výborné komunikačné a prezentačné schopnosti, vodcovský potenciál." },
+        { zrucnost: "ai", potencialMin: 9, nazov: "AI Architect", popis: "Navrhovanie a implementácia rozsiahlych AI riešení.", vyzaduje: "Vysoký analytický a technický potenciál v oblasti AI/ML." },
+        { zrucnost: "prompt", potencialMin: 6, nazov: "Prompt Engineer", popis: "Optimalizácia vstupov pre generatívne AI modely a ich testovanie.", vyzaduje: "Kreativita, logické myslenie a skúsenosti s AI nástrojmi." },
+        { zrucnost: "dáta", potencialMin: 7, nazov: "Dátový Analytik", popis: "Zber, čistenie a vizualizácia dát pre podporu rozhodovania.", vyzaduje: "Silné analytické schopnosti a zameranie na detaily." },
+    ];
+    
+    // Funkcie pre filtre a ukladanie
+    function getMaxFilterPotencial(filterValue) {
+        if (filterValue === '4') return 4;
+        if (filterValue === '7') return 7;
+        if (filterValue === '10') return 10;
+        return 10;
+    }
+
+    function ulozProfil(meno, zrucnosti, potencial, urovenFiltra) {
+        localStorage.setItem('splent_meno', meno);
+        localStorage.setItem('splent_zrucnosti', zrucnosti);
+        localStorage.setItem('splent_potencial', potencial);
+        localStorage.setItem('splent_filter', urovenFiltra);
+    }
+    
+    function nacitajProfil() {
+        const ulozeneMeno = localStorage.getItem('splent_meno');
+        const ulozeneZrucnosti = localStorage.getItem('splent_zrucnosti');
+        const ulozenyPotencial = localStorage.getItem('splent_potencial');
+        const ulozenyFilter = localStorage.getItem('splent_filter');
+        
+        if (ulozeneMeno) document.getElementById('meno').value = ulozeneMeno;
+        if (ulozeneZrucnosti) document.getElementById('zrucnosti').value = ulozeneZrucnosti;
+        if (ulozenyPotencial) document.getElementById('potencial').value = parseInt(ulozenyPotencial);
+        if (ulozenyFilter) document.getElementById('urovenFiltra').value = ulozenyFilter;
+    }
+    
+    // NOVÁ FUNKCIA: Vymaže dáta z localStorage (pripojená k #resetBtn)
+    function vymazProfil() {
+        localStorage.removeItem('splent_meno');
+        localStorage.removeItem('splent_zrucnosti');
+        localStorage.removeItem('splent_potencial');
+        localStorage.removeItem('splent_filter');
+        
+        // Zobrazenie upozornenia a obnovenie stránky
+        alert("Váš uložený profil bol vymazaný. Obnovte stránku.");
+        location.reload(); 
+    }
+
+    // Funkcia pre ikonky
+    function getIconBySkill(skill) {
+        if (skill.includes("kódovanie") || skill.includes("tester")) return "💻";
+        if (skill.includes("manažment") || skill.includes("koordinátor")) return "🗓️";
+        if (skill.includes("predaj") || skill.includes("obchod")) return "🤝";
+        if (skill.includes("marketing")) return "💡";
+        if (skill.includes("administratíva")) return "📋";
+        if (skill.includes("financie") || skill.includes("účtovník") || skill.includes("analytik")) return "💰";
+        if (skill.includes("video")) return "🎬";
+        if (skill.includes("dizajn") || skill.includes("grafika")) return "🎨";
+        if (skill.includes("prezentácia") || skill.includes("tréner")) return "📣";
+        if (skill.includes("ai") || skill.includes("prompt")) return "🧠";
+        if (skill.includes("dáta")) return "📊";
+        return "💼"; 
+    }
+
+    // Hlavná funkcia pre Matcher
+    function generujMatch() {
+        const meno = document.getElementById('meno').value;
+        const zrucnostiText = document.getElementById('zrucnosti').value;
+        const potencial = parseInt(document.getElementById('potencial').value);
+        const urovenFiltra = document.getElementById('urovenFiltra').value;
+        const vystupElement = document.getElementById('vystup');
+        
+        // ... (Kontrola a spracovanie zručností) ...
+        if (!meno || zrucnostiText.trim().length === 0 || isNaN(potencial) || potencial < 1 || potencial > 10) {
+             vystupElement.innerHTML = `<div class="profil-box" style="border-color: #E57373; background-color: #FFEBEE;">
+                ⚠️ **Prosím, vyplňte Meno, aspoň jednu Zručnosť a Potenciál (1-10) správne!**
+            </div>`;
+            return;
+        }
+        
+        ulozProfil(meno, zrucnostiText, potencial, urovenFiltra);
+
+        const maxPotencialFilter = getMaxFilterPotencial(urovenFiltra); 
+        const zrucnostiArray = zrucnostiText.split(',').map(skill => skill.toLowerCase().trim()).filter(skill => skill.length > 0); 
+
+        // ... (Vytvorenie profilu HTML) ...
+        let popisPotencialu = (potencial >= 8) ? "⭐ **Vynikajúci a vysoký potenciál** pre vedúce úlohy! (Líder)" : 
+                              (potencial >= 5) ? "✨ **Silný a rozvíjajúci sa potenciál**, ideálny na špecializáciu. (Expert)" : 
+                                               "🌱 **Stabilný potenciál**, pripravený na rast a základné pozície. (Nováčik)";
+        
+        const zrucnostiFormatovane = zrucnostiArray.map(s => s.charAt(0).toUpperCase() + s.slice(1)).join(', ');
+
+        const profilHTML = `
+            <h3>Profil: ${meno}</h3>
+            <p><strong>Kľúčové zručnosti:</strong> ${zrucnostiFormatovane}</p>
+            <p><strong>Úroveň Potenciálu:</strong> ${potencial}/10</p>
+            <p><strong>Zobrazené pozície do Potenciálu:</strong> ${maxPotencialFilter}/10</p>
+            <p><em>${popisPotencialu}</em></p>
+        `;
+
+        // ... (Job Matching Logika) ...
+        let jobMatchHTML = "";
+        let foundMatch = false;
+        let odporucanePrace = []; 
+
+        for (const inputSkill of zrucnostiArray) {
+            let bestJobForSkill = null;
+
+            for (const job of jobData) {
+                if (job.potencialMin > maxPotencialFilter) continue; 
+                
+                if (inputSkill.includes(job.zrucnost)) {
+                    if (potencial >= job.potencialMin) {
+                        if (!bestJobForSkill || job.potencialMin > bestJobForSkill.potencialMin) {
+                            bestJobForSkill = job;
+                        }
+                    }
+                }
+            }
+            
+            if (bestJobForSkill) {
+                if (!odporucanePrace.some(j => j.nazov === bestJobForSkill.nazov)) {
+                    odporucanePrace.push(bestJobForSkill);
+                    foundMatch = true;
+                }
+            }
+        }
+        
+        if (foundMatch) {
+            jobMatchHTML = odporucanePrace.map(job => `
+                <div class="job-offer">
+                    <h4>${getIconBySkill(job.zrucnost)} ${job.nazov}</h4>
+                    <p><strong>Popis:</strong> ${job.popis}</p>
+                    <p><strong>Potrebné kritériá:</strong> ${job.vyzaduje}</p>
+                    <p style="font-size: 0.9em; margin-top: 10px;">Zhoda so zručnosťou: **${job.zrucnost.charAt(0).toUpperCase() + job.zrucnost.slice(1)}** (Potenciál ${potencial}/${job.potencialMin})</p>
+                </div>
+            `).join(''); 
+
+        } else {
+             jobMatchHTML = `
+                <div class="job-offer no-match">
+                    <h4>😞 Žiadna priama zhoda</h4>
+                    <p>Nenašli sme pozíciu, ktorá by zodpovedala Vašim zručnostiam, potenciálu **${potencial}/10** **a zvolenému filtru**.</p>
+                    <p>Skúste zmeniť filter alebo zručnosti!</p>
+                </div>
+            `;
+        }
+
+        // Zobrazenie konečného výstupu
+        vystupElement.innerHTML = `
+            <div class="profil-box">
+                ${profilHTML}
+            </div>
+            <h3>Odporúčané Pracovné Ponuky:</h3>
+            ${jobMatchHTML}
+        `;
+    }
+</script>
+
+</body>
+</html>
